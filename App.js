@@ -1,755 +1,963 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
-  Image,
   TextInput,
+  Image,
   TouchableOpacity,
   Switch,
   StyleSheet,
+  Alert,
+  Platform,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
 import Slider from '@react-native-community/slider';
 
+const CHAVE_FORMULARIOS = '@CineMundo:formularios';
+
+// PARTE 1 — ATORES
 const atores = [
   {
     id: '1',
-    nome: 'Ana Lima',
-    categoria: 'Drama',
-    imagem: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+    nome: 'Robert Downey Jr.',
+    filme: 'Homem de Ferro',
+    imagem: 'https://commons.wikimedia.org/wiki/Special:FilePath/Robert_Downey_Jr_at_Comic_Con_2007.jpg',
     descricao:
-      'Ana Lima é uma atriz fictícia conhecida por interpretar personagens sensíveis e determinados. Em suas histórias, ela demonstra como a coragem, a amizade e a persistência podem transformar situações difíceis.',
+      'Robert Downey Jr. é um ator norte-americano que ficou mundialmente conhecido por interpretar Tony Stark, o Homem de Ferro, no universo cinematográfico da Marvel. Seu personagem é um inventor muito inteligente, empresário e criador de uma armadura tecnológica avançada. Ao longo dos filmes, Tony enfrenta inimigos poderosos, desenvolve novas tecnologias e aprende a assumir responsabilidades cada vez maiores. Sua personalidade combina humor, coragem e inteligência, tornando-o um dos personagens mais conhecidos dos filmes de super-heróis.',
   },
   {
     id: '2',
-    nome: 'Lucas Martins',
-    categoria: 'Ação',
-    imagem: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500',
+    nome: 'Zendaya',
+    filme: 'Homem-Aranha',
+    imagem: 'https://commons.wikimedia.org/wiki/Special:FilePath/Zendaya_by_Gage_Skidmore.jpg',
     descricao:
-      'Lucas Martins é um ator fictício que participa de aventuras cheias de desafios. Seus personagens valorizam o trabalho em equipe, a responsabilidade e a capacidade de tomar decisões importantes nos momentos difíceis.',
+      'Zendaya é uma atriz, cantora e produtora norte-americana que ganhou destaque em produções para televisão e cinema. Nos filmes recentes do Homem-Aranha, ela interpreta MJ, uma jovem inteligente, observadora e independente que se aproxima de Peter Parker. A personagem participa de momentos importantes da história e ajuda Peter a enfrentar situações difíceis. Além de atuar em filmes de super-heróis, Zendaya também é conhecida por trabalhos dramáticos e por sua participação em produções que exploram relacionamentos, desafios pessoais e amadurecimento.',
   },
   {
     id: '3',
-    nome: 'Mariana Costa',
-    categoria: 'Comédia',
-    imagem: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=500',
+    nome: 'Tom Holland',
+    filme: 'Homem-Aranha',
+    imagem: 'https://commons.wikimedia.org/wiki/Special:FilePath/TomHolland-byPhilipRomano.jpg',
     descricao:
-      'Mariana Costa é uma atriz fictícia especializada em comédias. Suas histórias mostram como o bom humor aproxima as pessoas, ajuda a superar problemas cotidianos e transforma pequenos acontecimentos em grandes lembranças.',
+      'Tom Holland é um ator britânico que começou sua carreira artística ainda jovem e conquistou reconhecimento internacional ao interpretar Peter Parker, o Homem-Aranha. Nos filmes da Marvel, seu personagem precisa conciliar a vida de estudante com as responsabilidades de ser um super-herói. Peter enfrenta vilões, protege pessoas e aprende com seus próprios erros. A interpretação de Holland destaca o lado humano do personagem, mostrando suas amizades, dúvidas, desafios familiares e o esforço necessário para fazer escolhas difíceis.',
   },
   {
     id: '4',
-    nome: 'Pedro Almeida',
-    categoria: 'Aventura',
-    imagem: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=500',
+    nome: 'Margot Robbie',
+    filme: 'Barbie',
+    imagem: 'https://commons.wikimedia.org/wiki/Special:FilePath/Margot_Robbie_2016_cropped_and_retouched.jpg',
     descricao:
-      'Pedro Almeida é um ator fictício que interpreta exploradores e aventureiros. Seus personagens enfrentam desafios, descobrem lugares desconhecidos e aprendem que a coragem e a cooperação são importantes para superar obstáculos.',
+      'Margot Robbie é uma atriz e produtora australiana conhecida por participar de grandes produções cinematográficas. No filme Barbie, ela interpreta uma versão da famosa boneca que começa a questionar sua realidade e decide conhecer melhor o mundo real. A história mistura comédia, fantasia e reflexões sobre identidade, expectativas sociais e autoconhecimento. Além de atuar, Margot também trabalha como produtora, participando do desenvolvimento de projetos para o cinema. Sua carreira inclui personagens variados, que demonstram sua versatilidade como atriz.',
   },
   {
     id: '5',
-    nome: 'Julia Ferreira',
-    categoria: 'Ficção científica',
-    imagem: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=500',
+    nome: 'Keanu Reeves',
+    filme: 'Matrix',
+    imagem: 'https://commons.wikimedia.org/wiki/Special:FilePath/Keanu.jpg',
     descricao:
-      'Julia Ferreira é uma atriz fictícia que participa de histórias futuristas. Seus papéis exploram a tecnologia, as viagens espaciais e os dilemas humanos, mostrando como nossas escolhas podem influenciar o futuro.',
-  },
-  {
-    id: '6',
-    nome: 'Rafael Souza',
-    categoria: 'Suspense',
-    imagem: 'https://images.unsplash.com/photo-1504257432389-52343af06ae3?w=500',
-    descricao:
-      'Rafael Souza é um ator fictício conhecido por histórias de mistério. Seus personagens investigam acontecimentos inesperados, procuram pistas e precisam usar a inteligência para descobrir a verdade por trás de cada situação.',
+      'Keanu Reeves é um ator canadense conhecido por suas participações em filmes de ação e ficção científica. Em Matrix, ele interpreta Neo, um programador que descobre que o mundo em que vive pode ser uma realidade simulada por máquinas. A partir dessa descoberta, Neo passa a questionar tudo o que conhecia e se envolve em uma luta pela liberdade da humanidade. O filme ficou famoso por suas ideias filosóficas, cenas de ação e efeitos visuais inovadores, influenciando diversas produções posteriores.',
   },
 ];
 
+// PARTE 2 — BASTIDORES DO CINEMA
 const bastidores = [
   {
     id: '1',
-    titulo: 'A preparação para um personagem',
-    imagem: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?w=1000',
+    titulo: 'Preparação dos atores',
+    imagem: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?w=900',
     descricao:
-      'Antes de interpretar um personagem, um ator pode estudar o roteiro, pesquisar sobre a história e praticar suas falas. Também pode observar comportamentos humanos para construir uma interpretação convincente. Essa preparação ajuda a transmitir emoções e tornar cada cena mais natural para o público.',
+      'Antes de começar as gravações, muitos atores estudam cuidadosamente o roteiro e pesquisam sobre os personagens que irão interpretar. Dependendo do papel, podem aprender novas habilidades, realizar treinamentos físicos, praticar sotaques e conversar com especialistas. Essa preparação ajuda a compreender a personalidade e as experiências do personagem. O objetivo é construir uma interpretação convincente, que combine com a história e faça o público acreditar nas situações apresentadas durante o filme.',
   },
   {
     id: '2',
-    titulo: 'O trabalho em equipe',
-    imagem: 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?w=1000',
+    titulo: 'Efeitos especiais',
+    imagem: 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?w=900',
     descricao:
-      'Um filme depende da colaboração entre atores, diretores, roteiristas, fotógrafos, figurinistas e muitos outros profissionais. Cada pessoa contribui com habilidades diferentes para alcançar um resultado comum. A comunicação e a organização são fundamentais para que as gravações aconteçam e a história seja contada da melhor maneira.',
+      'Os efeitos especiais ajudam a criar cenas que seriam difíceis, perigosas ou impossíveis de realizar na vida real. As equipes utilizam técnicas como computação gráfica, maquiagem, cenários construídos e efeitos práticos. Em filmes de fantasia e ficção científica, esses recursos permitem representar criaturas, explosões, cidades imaginárias e outros elementos. Depois das gravações, profissionais de efeitos visuais podem trabalhar durante meses para integrar as imagens digitais às cenas filmadas e deixar o resultado mais realista.',
   },
   {
     id: '3',
-    titulo: 'Câmeras e iluminação',
-    imagem: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=1000',
+    titulo: 'Gravação das cenas',
+    imagem: 'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=900',
     descricao:
-      'A fotografia de um filme ajuda a construir sua identidade visual. Os profissionais escolhem câmeras, lentes, ângulos e iluminação para transmitir diferentes sensações. Uma cena pode parecer alegre, misteriosa ou assustadora dependendo de como a luz e o enquadramento são utilizados durante a gravação.',
+      'Durante a produção de um filme, uma mesma cena pode precisar de várias tentativas até alcançar o resultado desejado pelo diretor. A equipe organiza câmeras, iluminação, som e a posição dos atores antes de cada gravação. Pequenos detalhes precisam ser repetidos para manter a continuidade entre as cenas, como a posição dos objetos e os movimentos dos personagens. Depois, os melhores trechos são selecionados durante a edição para construir uma história organizada e interessante.',
   },
   {
     id: '4',
-    titulo: 'Figurinos e maquiagem',
-    imagem: 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=1000',
+    titulo: 'Figurino e maquiagem',
+    imagem: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=900',
     descricao:
-      'O figurino e a maquiagem ajudam a transformar os atores nos personagens da história. As roupas podem indicar a época, a profissão e a personalidade de alguém. Já a maquiagem pode modificar a aparência e criar detalhes importantes para tornar o universo do filme mais convincente.',
+      'As equipes de figurino e maquiagem são responsáveis por ajudar os atores a se transformarem nos personagens. Elas escolhem roupas, acessórios, penteados e técnicas de caracterização que combinam com a história. Em algumas produções, o trabalho precisa representar épocas históricas ou criar personagens fantásticos. Os profissionais também acompanham as gravações para garantir que a aparência continue consistente entre diferentes cenas. Esses detalhes ajudam o público a compreender a personalidade dos personagens e o ambiente em que vivem.',
   },
   {
     id: '5',
-    titulo: 'Edição e efeitos especiais',
-    imagem: 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=1000',
+    titulo: 'Edição e trilha sonora',
+    imagem: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=900',
     descricao:
-      'Depois das gravações, a equipe de edição organiza as cenas e escolhe o ritmo da narrativa. A trilha sonora, os efeitos visuais e os ajustes de imagem ajudam a completar a experiência. Esse trabalho transforma diferentes gravações em um filme que pode emocionar e surpreender o público.',
+      'Depois que as gravações terminam, os profissionais de edição organizam as cenas e escolhem a melhor sequência para contar a história. A equipe de som acrescenta diálogos, ruídos, efeitos e músicas que combinam com cada momento. A trilha sonora pode aumentar a tensão, destacar uma cena emocionante ou criar uma atmosfera divertida. Esse trabalho exige atenção aos detalhes, porque o ritmo da edição e a escolha dos sons influenciam diretamente a experiência do público ao assistir ao filme.',
   },
 ];
 
-export default function App() {
-  const [atorSelecionado, setAtorSelecionado] = useState('1');
-  const [bastidorSelecionado, setBastidorSelecionado] = useState(null);
-
-  const [nome, setNome] = useState('');
-  const [email, setEmail] = useState('');
-  const [filmeFavorito, setFilmeFavorito] = useState('');
-  const [comentario, setComentario] = useState('');
-
-  const [genero, setGenero] = useState('Aventura');
-  const [plataforma, setPlataforma] = useState('Streaming');
-
-  const [nota, setNota] = useState(5);
-  const [interesse, setInteresse] = useState(7);
-
-  const [receberNovidades, setReceberNovidades] = useState(false);
-  const [recomendarFilmes, setRecomendarFilmes] = useState(false);
-
-  const [perfilSalvo, setPerfilSalvo] = useState(null);
-  const [mensagem, setMensagem] = useState('');
-
-  function salvarPerfil() {
-    if (
-      !nome.trim() ||
-      !email.trim() ||
-      !filmeFavorito.trim() ||
-      !comentario.trim()
-    ) {
-      setMensagem('Preencha os quatro campos de texto antes de salvar.');
-      return;
-    }
-
-    const perfil = {
-      nome: nome.trim(),
-      email: email.trim(),
-      filmeFavorito: filmeFavorito.trim(),
-      comentario: comentario.trim(),
-      genero,
-      plataforma,
-      nota,
-      interesse,
-      receberNovidades,
-      recomendarFilmes,
-    };
-
-    setPerfilSalvo(perfil);
-    setMensagem('Perfil salvo na tela com sucesso!');
-  }
-
-  function limparFormulario() {
-    setNome('');
-    setEmail('');
-    setFilmeFavorito('');
-    setComentario('');
-    setGenero('Aventura');
-    setPlataforma('Streaming');
-    setNota(5);
-    setInteresse(7);
-    setReceberNovidades(false);
-    setRecomendarFilmes(false);
-    setPerfilSalvo(null);
-    setMensagem('Formulário e resumo limpos.');
-  }
-
+// CAMPO DE TEXTO
+function Campo({ titulo, valor, alterar, dica, teclado }) {
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.conteudo}
-    >
-      {/* CABEÇALHO */}
-      <View style={styles.cabecalho}>
-        <Text style={styles.tituloPrincipal}>CineMundo</Text>
-        <Text style={styles.subtitulo}>
-          Conheça os atores e descubra os bastidores do cinema
-        </Text>
-      </View>
-
-      {/* PARTE 1 */}
-      <Text style={styles.tituloSecao}>
-        Parte 1 — Conheça os atores
-      </Text>
-
-      <Text style={styles.instrucao}>
-        Explore os perfis abaixo. Selecione um ator para destacá-lo.
-      </Text>
-
-      {atores.map((ator) => {
-        const selecionado = atorSelecionado === ator.id;
-
-        return (
-          <TouchableOpacity
-            key={ator.id}
-            style={[
-              styles.cardAtor,
-              selecionado && styles.cardSelecionado,
-            ]}
-            onPress={() => setAtorSelecionado(ator.id)}
-            activeOpacity={0.8}
-          >
-            <Image
-              source={{ uri: ator.imagem }}
-              style={styles.imagemAtor}
-              resizeMode="cover"
-            />
-
-            <View style={styles.conteudoAtor}>
-              <Text style={styles.nomeAtor}>{ator.nome}</Text>
-              <Text style={styles.categoria}>{ator.categoria}</Text>
-              <Text style={styles.descricao}>{ator.descricao}</Text>
-
-              <Text style={styles.textoAcao}>
-                {selecionado
-                  ? 'Ator selecionado ✓'
-                  : 'Toque para selecionar'}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        );
-      })}
-
-      {/* PARTE 2 */}
-      <Text style={styles.tituloSecao}>
-        Parte 2 — Descubra os bastidores
-      </Text>
-
-      <Text style={styles.instrucao}>
-        Selecione um tema para conhecer como os filmes são produzidos.
-      </Text>
-
-      {bastidores.map((item) => {
-        const selecionado = bastidorSelecionado === item.id;
-
-        return (
-          <TouchableOpacity
-            key={item.id}
-            style={[
-              styles.cardBastidor,
-              selecionado && styles.cardSelecionado,
-            ]}
-            onPress={() => setBastidorSelecionado(item.id)}
-            activeOpacity={0.85}
-          >
-            <Image
-              source={{ uri: item.imagem }}
-              style={styles.imagemBastidor}
-              resizeMode="cover"
-            />
-
-            <View style={styles.conteudoBastidor}>
-              <Text style={styles.tituloCard}>{item.titulo}</Text>
-              <Text style={styles.descricao}>{item.descricao}</Text>
-
-              <Text style={styles.textoAcao}>
-                {selecionado
-                  ? 'Tema selecionado ✓'
-                  : 'Toque para interagir'}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        );
-      })}
-
-      {/* PARTE 3 */}
-      <Text style={styles.tituloSecao}>
-        Parte 3 — Monte seu perfil cinéfilo
-      </Text>
-
-      <Text style={styles.instrucao}>
-        Preencha suas informações e salve seu perfil para ver o resumo abaixo.
-      </Text>
-
-      <View style={styles.formulario}>
-        {/* INPUT 1 */}
-        <Text style={styles.rotulo}>1. Nome</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Digite seu nome"
-          value={nome}
-          onChangeText={setNome}
-        />
-
-        {/* INPUT 2 */}
-        <Text style={styles.rotulo}>2. E-mail</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Digite seu e-mail"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-
-        {/* INPUT 3 */}
-        <Text style={styles.rotulo}>3. Filme favorito</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Digite seu filme favorito"
-          value={filmeFavorito}
-          onChangeText={setFilmeFavorito}
-        />
-
-        {/* INPUT 4 */}
-        <Text style={styles.rotulo}>4. Comentário sobre cinema</Text>
-        <TextInput
-          style={[styles.input, styles.inputMultilinha]}
-          placeholder="Conte o que você gosta nos filmes"
-          value={comentario}
-          onChangeText={setComentario}
-          multiline
-          textAlignVertical="top"
-        />
-
-        {/* PICKER 1 */}
-        <Text style={styles.rotulo}>
-          Picker 1 — Gênero favorito
-        </Text>
-
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={genero}
-            onValueChange={setGenero}
-            style={styles.picker}
-          >
-            <Picker.Item label="Ação" value="Ação" />
-            <Picker.Item label="Aventura" value="Aventura" />
-            <Picker.Item label="Comédia" value="Comédia" />
-            <Picker.Item label="Drama" value="Drama" />
-            <Picker.Item label="Ficção científica" value="Ficção científica" />
-            <Picker.Item label="Suspense" value="Suspense" />
-            <Picker.Item label="Terror" value="Terror" />
-          </Picker>
-        </View>
-
-        {/* PICKER 2 */}
-        <Text style={styles.rotulo}>
-          Picker 2 — Onde você assiste?
-        </Text>
-
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={plataforma}
-            onValueChange={setPlataforma}
-            style={styles.picker}
-          >
-            <Picker.Item label="Streaming" value="Streaming" />
-            <Picker.Item label="Cinema" value="Cinema" />
-            <Picker.Item label="Televisão" value="Televisão" />
-            <Picker.Item label="DVD ou Blu-ray" value="DVD ou Blu-ray" />
-          </Picker>
-        </View>
-
-        {/* SLIDER 1 */}
-        <Text style={styles.rotulo}>
-          Slider 1 — Sua nota para os filmes: {nota}/10
-        </Text>
-
-        <Slider
-          style={styles.slider}
-          minimumValue={1}
-          maximumValue={10}
-          step={1}
-          value={nota}
-          onValueChange={setNota}
-          minimumTrackTintColor="#C8103E"
-          maximumTrackTintColor="#CBD5E1"
-          thumbTintColor="#009688"
-        />
-
-        {/* SLIDER 2 */}
-        <Text style={styles.rotulo}>
-          Slider 2 — Seu interesse por cinema: {interesse}/10
-        </Text>
-
-        <Slider
-          style={styles.slider}
-          minimumValue={1}
-          maximumValue={10}
-          step={1}
-          value={interesse}
-          onValueChange={setInteresse}
-          minimumTrackTintColor="#C8103E"
-          maximumTrackTintColor="#CBD5E1"
-          thumbTintColor="#009688"
-        />
-
-        {/* SWITCH 1 */}
-        <View style={styles.linhaSwitch}>
-          <Text style={styles.rotuloSwitch}>
-            Switch 1 — Receber novidades
-          </Text>
-
-          <Switch
-            value={receberNovidades}
-            onValueChange={setReceberNovidades}
-            trackColor={{ false: '#CBD5E1', true: '#C8103E' }}
-            thumbColor={receberNovidades ? '#FFFFFF' : '#F1F5F9'}
-          />
-        </View>
-
-        {/* SWITCH 2 */}
-        <View style={styles.linhaSwitch}>
-          <Text style={styles.rotuloSwitch}>
-            Switch 2 — Recomendar filmes
-          </Text>
-
-          <Switch
-            value={recomendarFilmes}
-            onValueChange={setRecomendarFilmes}
-            trackColor={{ false: '#CBD5E1', true: '#C8103E' }}
-            thumbColor={recomendarFilmes ? '#FFFFFF' : '#F1F5F9'}
-          />
-        </View>
-
-        {/* BOTÃO 1 */}
-        <TouchableOpacity
-          style={styles.botaoSalvar}
-          onPress={salvarPerfil}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.textoBotao}>Salvar perfil</Text>
-        </TouchableOpacity>
-
-        {/* BOTÃO 2 */}
-        <TouchableOpacity
-          style={styles.botaoLimpar}
-          onPress={limparFormulario}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.textoBotao}>Limpar formulário</Text>
-        </TouchableOpacity>
-
-        {mensagem !== '' && (
-          <Text style={styles.mensagem}>{mensagem}</Text>
-        )}
-      </View>
-
-      {/* RESUMO DO PERFIL SALVO */}
-      {perfilSalvo !== null && (
-        <View style={styles.cardPerfil}>
-          <Text style={styles.tituloPerfil}>
-            Perfil salvo — CineMundo
-          </Text>
-
-          <Text style={styles.textoPerfil}>
-            Nome: {perfilSalvo.nome}
-          </Text>
-
-          <Text style={styles.textoPerfil}>
-            E-mail: {perfilSalvo.email}
-          </Text>
-
-          <Text style={styles.textoPerfil}>
-            Filme favorito: {perfilSalvo.filmeFavorito}
-          </Text>
-
-          <Text style={styles.textoPerfil}>
-            Comentário: {perfilSalvo.comentario}
-          </Text>
-
-          <Text style={styles.textoPerfil}>
-            Gênero favorito: {perfilSalvo.genero}
-          </Text>
-
-          <Text style={styles.textoPerfil}>
-            Onde assiste: {perfilSalvo.plataforma}
-          </Text>
-
-          <Text style={styles.textoPerfil}>
-            Nota para os filmes: {perfilSalvo.nota}/10
-          </Text>
-
-          <Text style={styles.textoPerfil}>
-            Interesse por cinema: {perfilSalvo.interesse}/10
-          </Text>
-
-          <Text style={styles.textoPerfil}>
-            Receber novidades: {perfilSalvo.receberNovidades ? 'Sim' : 'Não'}
-          </Text>
-
-          <Text style={styles.textoPerfil}>
-            Recomendar filmes: {perfilSalvo.recomendarFilmes ? 'Sim' : 'Não'}
-          </Text>
-        </View>
-      )}
-
-      <Text style={styles.rodape}>
-        CineMundo — Uma viagem pelo universo do cinema
-      </Text>
-    </ScrollView>
+    <View style={styles.campo}>
+      <Text style={styles.rotulo}>{titulo}</Text>
+      <TextInput
+        style={styles.input}
+        value={valor}
+        onChangeText={alterar}
+        placeholder={dica}
+        keyboardType={teclado || 'default'}
+      />
+    </View>
   );
 }
 
+// CARTÃO DE ATOR
+function CartaoAtor({ ator, selecionado, aoSelecionar }) {
+  const [erroImagem, setErroImagem] = useState(false);
+
+  return (
+    <TouchableOpacity
+      style={[styles.cartao, selecionado && styles.cartaoSelecionado]}
+      onPress={aoSelecionar}
+      activeOpacity={0.85}
+    >
+      {erroImagem ? (
+        <View style={[styles.imagem, styles.imagemAlternativa]}>
+          <Text style={styles.emojiImagem}>🎭</Text>
+          <Text>Não foi possível carregar a imagem</Text>
+        </View>
+      ) : (
+        <Image
+          source={{ uri: ator.imagem }}
+          style={styles.imagemAtor}
+          resizeMode="cover"
+          onError={() => setErroImagem(true)}
+        />
+      )}
+
+      <View style={styles.cartaoConteudo}>
+        <Text style={styles.tituloCartao}>{ator.nome}</Text>
+        <Text style={styles.destaque}>Filme: {ator.filme}</Text>
+        <Text style={styles.descricao}>{ator.descricao}</Text>
+        <Text style={styles.instrucao}>
+          {selecionado ? '✓ Selecionado' : 'Toque para selecionar'}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// CARTÃO DE BASTIDORES
+function CartaoBastidor({ item, selecionado, aoSelecionar }) {
+  const [erroImagem, setErroImagem] = useState(false);
+
+  return (
+    <TouchableOpacity
+      style={[styles.cartao, selecionado && styles.cartaoSelecionado]}
+      onPress={aoSelecionar}
+      activeOpacity={0.85}
+    >
+      {erroImagem ? (
+        <View style={[styles.imagem, styles.imagemAlternativa]}>
+          <Text style={styles.emojiImagem}>🎬</Text>
+          <Text>Não foi possível carregar a imagem</Text>
+        </View>
+      ) : (
+        <Image
+          source={{ uri: item.imagem }}
+          style={styles.imagem}
+          resizeMode="cover"
+          onError={() => setErroImagem(true)}
+        />
+      )}
+
+      <View style={styles.cartaoConteudo}>
+        <Text style={styles.tituloCartao}>{item.titulo}</Text>
+        <Text style={styles.descricao}>{item.descricao}</Text>
+        <Text style={styles.instrucao}>
+          {selecionado ? '✓ Selecionado' : 'Toque para selecionar'}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// BOTÃO
+function Botao({ titulo, acao, secundario = false, perigo = false }) {
+  return (
+    <TouchableOpacity
+      style={[
+        styles.botao,
+        secundario && styles.botaoSecundario,
+        perigo && styles.botaoPerigo,
+      ]}
+      onPress={acao}
+      activeOpacity={0.8}
+    >
+      <Text
+        style={[
+          styles.textoBotao,
+          secundario && styles.textoBotaoSecundario,
+        ]}
+      >
+        {titulo}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+// APLICATIVO PRINCIPAL
+export default function App() {
+  const [tela, setTela] = useState('inicio');
+
+  const [atorSelecionado, setAtorSelecionado] = useState(null);
+  const [bastidorSelecionado, setBastidorSelecionado] = useState(null);
+  const [resultadoCombinacao, setResultadoCombinacao] = useState(null);
+
+  // QUATRO CAMPOS DE TEXTO
+  const [nome, setNome] = useState('');
+  const [idade, setIdade] = useState('');
+  const [filmeFavorito, setFilmeFavorito] = useState('');
+  const [comentario, setComentario] = useState('');
+
+  // DOIS PICKERS
+  const [genero, setGenero] = useState('Ação');
+  const [plataforma, setPlataforma] = useState('Streaming');
+
+  // DOIS SLIDERS
+  const [nota, setNota] = useState(5);
+  const [horas, setHoras] = useState(2);
+
+  // DOIS SWITCHES
+  const [novidades, setNovidades] = useState(true);
+  const [recomendacoes, setRecomendacoes] = useState(false);
+
+  // FORMULÁRIOS SALVOS
+  const [formulariosSalvos, setFormulariosSalvos] = useState([]);
+  const [carregandoFormularios, setCarregandoFormularios] = useState(true);
+
+  // CARREGAR OS FORMULÁRIOS SALVOS
+  useEffect(() => {
+    async function carregarFormularios() {
+      try {
+        const dados = await AsyncStorage.getItem(CHAVE_FORMULARIOS);
+
+        if (dados) {
+          const lista = JSON.parse(dados);
+          if (Array.isArray(lista)) {
+            setFormulariosSalvos(lista);
+          }
+        }
+      } catch (erro) {
+        Alert.alert('Erro', 'Não foi possível carregar os formulários.');
+      } finally {
+        setCarregandoFormularios(false);
+      }
+    }
+
+    carregarFormularios();
+  }, []);
+
+  // SALVAR NOVO FORMULÁRIO
+  async function salvarFormulario() {
+    if (!nome.trim()) {
+      Alert.alert('Campo obrigatório', 'Digite seu nome antes de salvar.');
+      return;
+    }
+
+    const formulario = {
+      id: `${Date.now()}-${Math.random()}`,
+      nome: nome.trim(),
+      idade,
+      filmeFavorito,
+      comentario,
+      genero,
+      plataforma,
+      nota,
+      horas,
+      novidades,
+      recomendacoes,
+      dataAtualizacao: new Date().toLocaleString('pt-BR'),
+    };
+
+    try {
+      const atualizados = [...formulariosSalvos, formulario];
+
+      await AsyncStorage.setItem(
+        CHAVE_FORMULARIOS,
+        JSON.stringify(atualizados)
+      );
+
+      setFormulariosSalvos(atualizados);
+      limparFormulario();
+
+      Alert.alert('Sucesso!', 'Formulário salvo com sucesso.');
+    } catch (erro) {
+      Alert.alert('Erro', 'Não foi possível salvar o formulário.');
+    }
+  }
+
+  // LIMPAR OS CAMPOS PARA UM NOVO CADASTRO
+  function limparFormulario() {
+    setNome('');
+    setIdade('');
+    setFilmeFavorito('');
+    setComentario('');
+    setGenero('Ação');
+    setPlataforma('Streaming');
+    setNota(5);
+    setHoras(2);
+    setNovidades(true);
+    setRecomendacoes(false);
+  }
+
+  // EXCLUIR FORMULÁRIO DO ARMAZENAMENTO
+  async function excluirFormulario(id) {
+    try {
+      const atualizados = formulariosSalvos.filter(
+        (formulario) => formulario.id !== id
+      );
+
+      await AsyncStorage.setItem(
+        CHAVE_FORMULARIOS,
+        JSON.stringify(atualizados)
+      );
+
+      setFormulariosSalvos(atualizados);
+      Alert.alert('Excluído', 'O formulário foi excluído com sucesso.');
+    } catch (erro) {
+      Alert.alert('Erro', 'Não foi possível excluir o formulário.');
+    }
+  }
+
+  // CONFIRMAR EXCLUSÃO
+  function confirmarExclusao(formulario) {
+    const mensagem = `Deseja realmente excluir o formulário de ${formulario.nome}?`;
+
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm(mensagem)) {
+        excluirFormulario(formulario.id);
+      }
+      return;
+    }
+
+    Alert.alert('Confirmar exclusão', mensagem, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Excluir',
+        style: 'destructive',
+        onPress: () => excluirFormulario(formulario.id),
+      },
+    ]);
+  }
+
+  // COMBINAR OS ITENS SELECIONADOS
+  function combinarListas() {
+    if (!atorSelecionado || !bastidorSelecionado) {
+      Alert.alert(
+        'Selecione os itens',
+        'Escolha um ator e uma curiosidade dos bastidores.'
+      );
+      return;
+    }
+
+    setResultadoCombinacao({
+      ator: atorSelecionado,
+      bastidor: bastidorSelecionado,
+    });
+  }
+
+  return (
+    <View style={styles.tela}>
+      <View style={styles.cabecalho}>
+        <Text style={styles.logo}>🎬 CineMundo</Text>
+        <Text style={styles.subtitulo}>Seu universo cinematográfico</Text>
+      </View>
+
+      {/* NAVEGAÇÃO ENTRE DUAS TELAS */}
+      <View style={styles.navegacao}>
+        <TouchableOpacity
+          style={[styles.navItem, tela === 'inicio' && styles.navAtivo]}
+          onPress={() => setTela('inicio')}
+        >
+          <Text
+            style={[
+              styles.navTexto,
+              tela === 'inicio' && styles.navTextoAtivo,
+            ]}
+          >
+            🎥 Início
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.navItem, tela === 'perfil' && styles.navAtivo]}
+          onPress={() => setTela('perfil')}
+        >
+          <Text
+            style={[
+              styles.navTexto,
+              tela === 'perfil' && styles.navTextoAtivo,
+            ]}
+          >
+            👤 Meu perfil
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.conteudo}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* TELA 1 — ATORES E BASTIDORES */}
+        {tela === 'inicio' && (
+          <View>
+            <View style={styles.banner}>
+              <Text style={styles.tituloBanner}>Bem-vindo ao CineMundo!</Text>
+              <Text style={styles.textoBanner}>
+                Conheça atores, descubra curiosidades e explore os bastidores
+                das produções cinematográficas.
+              </Text>
+              <Botao
+                titulo="Ir para meu perfil"
+                acao={() => setTela('perfil')}
+              />
+            </View>
+
+            <Text style={styles.tituloSecao}>⭐ Parte 1 — Atores</Text>
+            <Text style={styles.ajuda}>
+              Selecione um ator e depois uma curiosidade na segunda lista.
+            </Text>
+
+            {atores.map((ator) => (
+              <CartaoAtor
+                key={ator.id}
+                ator={ator}
+                selecionado={atorSelecionado?.id === ator.id}
+                aoSelecionar={() => setAtorSelecionado(ator)}
+              />
+            ))}
+
+            <Text style={styles.tituloSecao}>🎬 Parte 2 — Bastidores</Text>
+
+            {bastidores.map((item) => (
+              <CartaoBastidor
+                key={item.id}
+                item={item}
+                selecionado={bastidorSelecionado?.id === item.id}
+                aoSelecionar={() => setBastidorSelecionado(item)}
+              />
+            ))}
+
+            {/* INTERAÇÃO ENTRE AS LISTAS */}
+            <View style={styles.blocoInteracao}>
+              <Text style={styles.tituloCartao}>
+                Combinar itens selecionados
+              </Text>
+
+              <Text style={styles.descricao}>
+                Ator: {atorSelecionado?.nome || 'Nenhum selecionado'}
+              </Text>
+
+              <Text style={styles.descricao}>
+                Bastidor:{' '}
+                {bastidorSelecionado?.titulo || 'Nenhum selecionado'}
+              </Text>
+
+              <Botao
+                titulo="Combinar itens selecionados"
+                acao={combinarListas}
+              />
+
+              {resultadoCombinacao && (
+                <View style={styles.resultado}>
+                  <Text style={styles.tituloCartao}>
+                    🎬 Resultado da combinação
+                  </Text>
+
+                  <Text style={styles.destaque}>
+                    Ator: {resultadoCombinacao.ator.nome}
+                  </Text>
+
+                  <Text style={styles.descricao}>
+                    Filme: {resultadoCombinacao.ator.filme}
+                  </Text>
+
+                  <Image
+                    source={{ uri: resultadoCombinacao.ator.imagem }}
+                    style={styles.imagemResultado}
+                    resizeMode="cover"
+                  />
+
+                  <Text style={styles.destaque}>
+                    Curiosidade: {resultadoCombinacao.bastidor.titulo}
+                  </Text>
+
+                  <Text style={styles.descricao}>
+                    {resultadoCombinacao.bastidor.descricao}
+                  </Text>
+
+                  <Text style={styles.descricao}>
+                    Esta combinação relaciona o ator escolhido com uma
+                    curiosidade sobre a produção cinematográfica, permitindo
+                    explorar os dois itens juntos.
+                  </Text>
+
+                  <Botao
+                    titulo="Limpar resultado"
+                    secundario
+                    acao={() => setResultadoCombinacao(null)}
+                  />
+                </View>
+              )}
+
+              <Botao
+                titulo="Limpar seleções"
+                secundario
+                acao={() => {
+                  setAtorSelecionado(null);
+                  setBastidorSelecionado(null);
+                  setResultadoCombinacao(null);
+                }}
+              />
+            </View>
+          </View>
+        )}
+
+        {/* TELA 2 — FORMULÁRIO */}
+        {tela === 'perfil' && (
+          <View>
+            <Text style={styles.tituloPagina}>Meu perfil de cinéfilo</Text>
+            <Text style={styles.ajuda}>
+              Preencha os campos e salve quantos formulários precisar.
+            </Text>
+
+            <View style={styles.formulario}>
+              <Campo
+                titulo="Nome"
+                valor={nome}
+                alterar={setNome}
+                dica="Digite seu nome"
+              />
+
+              <Campo
+                titulo="Idade"
+                valor={idade}
+                alterar={setIdade}
+                dica="Digite sua idade"
+                teclado="numeric"
+              />
+
+              <Campo
+                titulo="Filme favorito"
+                valor={filmeFavorito}
+                alterar={setFilmeFavorito}
+                dica="Digite seu filme favorito"
+              />
+
+              <Campo
+                titulo="Comentário"
+                valor={comentario}
+                alterar={setComentario}
+                dica="Escreva um comentário"
+              />
+
+              <Text style={styles.rotulo}>Gênero favorito</Text>
+              <View style={styles.picker}>
+                <Picker selectedValue={genero} onValueChange={setGenero}>
+                  <Picker.Item label="Ação" value="Ação" />
+                  <Picker.Item label="Comédia" value="Comédia" />
+                  <Picker.Item label="Drama" value="Drama" />
+                  <Picker.Item label="Terror" value="Terror" />
+                  <Picker.Item label="Ficção científica" value="Ficção científica" />
+                  <Picker.Item label="Animação" value="Animação" />
+                  <Picker.Item label="Romance" value="Romance" />
+                </Picker>
+              </View>
+
+              <Text style={styles.rotulo}>Onde prefere assistir?</Text>
+              <View style={styles.picker}>
+                <Picker selectedValue={plataforma} onValueChange={setPlataforma}>
+                  <Picker.Item label="Streaming" value="Streaming" />
+                  <Picker.Item label="Cinema" value="Cinema" />
+                  <Picker.Item label="Televisão" value="Televisão" />
+                  <Picker.Item label="Computador" value="Computador" />
+                </Picker>
+              </View>
+
+              <Text style={styles.rotulo}>
+                Interesse por cinema: {nota}/10
+              </Text>
+              <Slider
+                minimumValue={0}
+                maximumValue={10}
+                step={1}
+                value={nota}
+                onValueChange={setNota}
+                minimumTrackTintColor="#7054B5"
+              />
+
+              <Text style={styles.rotulo}>
+                Horas assistindo por semana: {horas}
+              </Text>
+              <Slider
+                minimumValue={0}
+                maximumValue={20}
+                step={1}
+                value={horas}
+                onValueChange={setHoras}
+                minimumTrackTintColor="#7054B5"
+              />
+
+              <View style={styles.linhaSwitch}>
+                <Text style={styles.rotulo}>Receber novidades</Text>
+                <Switch value={novidades} onValueChange={setNovidades} />
+              </View>
+
+              <View style={styles.linhaSwitch}>
+                <Text style={styles.rotulo}>Receber recomendações</Text>
+                <Switch
+                  value={recomendacoes}
+                  onValueChange={setRecomendacoes}
+                />
+              </View>
+
+              <Botao
+                titulo="Salvar formulário"
+                acao={salvarFormulario}
+              />
+
+              <Botao
+                titulo="Limpar campos"
+                secundario
+                acao={limparFormulario}
+              />
+            </View>
+
+            {/* FORMULÁRIOS SALVOS */}
+            <View style={styles.resumo}>
+              <Text style={styles.tituloSecao}>
+                Formulários salvos ({formulariosSalvos.length})
+              </Text>
+
+              {carregandoFormularios ? (
+                <Text style={styles.descricao}>Carregando...</Text>
+              ) : formulariosSalvos.length === 0 ? (
+                <Text style={styles.descricao}>
+                  Nenhum formulário salvo ainda.
+                </Text>
+              ) : (
+                formulariosSalvos.map((formulario) => (
+                  <View key={formulario.id} style={styles.formularioSalvo}>
+                    <Text style={styles.tituloCartao}>
+                      {formulario.nome}
+                    </Text>
+
+                    <Text style={styles.descricao}>
+                      Idade: {formulario.idade || 'Não informada'}
+                    </Text>
+
+                    <Text style={styles.descricao}>
+                      Filme favorito:{' '}
+                      {formulario.filmeFavorito || 'Não informado'}
+                    </Text>
+
+                    <Text style={styles.descricao}>
+                      Comentário: {formulario.comentario || 'Não informado'}
+                    </Text>
+
+                    <Text style={styles.descricao}>
+                      Gênero: {formulario.genero}
+                    </Text>
+
+                    <Text style={styles.descricao}>
+                      Plataforma: {formulario.plataforma}
+                    </Text>
+
+                    <Text style={styles.descricao}>
+                      Interesse por cinema: {formulario.nota}/10
+                    </Text>
+
+                    <Text style={styles.descricao}>
+                      Horas por semana: {formulario.horas}
+                    </Text>
+
+                    <Text style={styles.descricao}>
+                      Receber novidades: {formulario.novidades ? 'Sim' : 'Não'}
+                    </Text>
+
+                    <Text style={styles.descricao}>
+                      Receber recomendações:{' '}
+                      {formulario.recomendacoes ? 'Sim' : 'Não'}
+                    </Text>
+
+                    <Text style={styles.dataFormulario}>
+                      Salvo em: {formulario.dataAtualizacao}
+                    </Text>
+
+                    {/* BOTÃO DE EXCLUSÃO — SEM BOTÃO DE EDITAR */}
+                    <Botao
+                      titulo="Excluir formulário"
+                      perigo
+                      acao={() => confirmarExclusao(formulario)}
+                    />
+                  </View>
+                ))
+              )}
+            </View>
+          </View>
+        )}
+
+        <Text style={styles.rodape}>CineMundo • Projeto React Native</Text>
+      </ScrollView>
+    </View>
+  );
+}
+
+// ESTILOS
 const styles = StyleSheet.create({
-  container: {
+  tela: {
     flex: 1,
-    backgroundColor: '#F0F4F8',
+    backgroundColor: '#F4F2FA',
   },
-
-  conteudo: {
-    padding: 20,
-    paddingBottom: 40,
-    width: '100%',
-    maxWidth: 1200,
-    alignSelf: 'center',
-  },
-
   cabecalho: {
-    backgroundColor: '#8F1238',
-    padding: 30,
-    borderRadius: 18,
-    alignItems: 'center',
-    marginBottom: 35,
+    backgroundColor: '#282044',
+    padding: 20,
   },
-
-  tituloPrincipal: {
+  logo: {
     color: '#FFFFFF',
-    fontSize: 38,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-
-  subtitulo: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    textAlign: 'center',
-    lineHeight: 26,
-  },
-
-  tituloSecao: {
-    color: '#8F1238',
     fontSize: 28,
     fontWeight: 'bold',
-    marginTop: 25,
-    marginBottom: 12,
   },
-
-  instrucao: {
-    color: '#475569',
-    fontSize: 16,
-    lineHeight: 24,
-    marginBottom: 18,
+  subtitulo: {
+    color: '#DCD5F2',
+    marginTop: 5,
   },
-
-  cardAtor: {
+  navegacao: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 15,
-    borderWidth: 2,
-    borderColor: 'transparent',
   },
-
-  cardSelecionado: {
-    borderColor: '#C8103E',
-  },
-
-  imagemAtor: {
-    width: 145,
-    minHeight: 190,
-    backgroundColor: '#E2E8F0',
-  },
-
-  conteudoAtor: {
+  navItem: {
     flex: 1,
+    alignItems: 'center',
     padding: 14,
-    justifyContent: 'center',
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
   },
-
-  nomeAtor: {
-    color: '#172B4D',
-    fontSize: 21,
-    fontWeight: 'bold',
-    marginBottom: 5,
+  navAtivo: {
+    borderBottomColor: '#7054B5',
   },
-
-  categoria: {
-    color: '#C8103E',
-    fontSize: 15,
-    fontWeight: 'bold',
-    marginBottom: 8,
+  navTexto: {
+    color: '#716C80',
+    fontWeight: '600',
   },
-
-  descricao: {
-    color: '#475569',
-    fontSize: 15,
-    lineHeight: 23,
+  navTextoAtivo: {
+    color: '#7054B5',
   },
-
-  textoAcao: {
-    color: '#C8103E',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginTop: 10,
+  conteudo: {
+    padding: 15,
+    paddingBottom: 40,
   },
-
-  cardBastidor: {
-    backgroundColor: '#FFFFFF',
+  banner: {
+    backgroundColor: '#E6DFF8',
     borderRadius: 16,
-    overflow: 'hidden',
+    padding: 20,
     marginBottom: 20,
-    borderWidth: 2,
-    borderColor: 'transparent',
   },
-
-  imagemBastidor: {
-    width: '100%',
-    height: 230,
-    backgroundColor: '#CBD5E1',
-  },
-
-  conteudoBastidor: {
-    padding: 18,
-  },
-
-  tituloCard: {
-    color: '#172B4D',
-    fontSize: 21,
+  tituloBanner: {
+    color: '#282044',
+    fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 10,
   },
-
-  formulario: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    borderRadius: 18,
+  textoBanner: {
+    color: '#49415E',
+    fontSize: 15,
+    lineHeight: 22,
   },
-
-  rotulo: {
-    color: '#24344D',
-    fontSize: 16,
+  tituloSecao: {
+    color: '#282044',
+    fontSize: 22,
     fontWeight: 'bold',
-    marginTop: 15,
+    marginTop: 20,
     marginBottom: 8,
   },
-
-  input: {
+  tituloPagina: {
+    color: '#282044',
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  ajuda: {
+    color: '#5E596E',
+    fontSize: 14,
+    lineHeight: 21,
+    marginBottom: 15,
+  },
+  cartao: {
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    fontSize: 16,
-    color: '#172B4D',
-  },
-
-  inputMultilinha: {
-    height: 110,
-    paddingTop: 14,
-  },
-
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 10,
+    borderRadius: 14,
+    marginBottom: 16,
     overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#E5E1EE',
+  },
+  cartaoSelecionado: {
+    borderColor: '#7054B5',
+    borderWidth: 3,
+  },
+  imagem: {
+    width: '100%',
+    height: 220,
+    backgroundColor: '#DDD8E8',
+  },
+  imagemAtor: {
+    width: '100%',
+    height: 280,
+    backgroundColor: '#DDD8E8',
+    alignSelf: 'center',
+  },
+  imagemResultado: {
+    width: '100%',
+    height: 220,
+    borderRadius: 10,
+    marginVertical: 10,
+    backgroundColor: '#DDD8E8',
+  },
+  imagemAlternativa: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emojiImagem: {
+    fontSize: 48,
+    marginBottom: 8,
+  },
+  cartaoConteudo: {
+    padding: 14,
+  },
+  tituloCartao: {
+    color: '#282044',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  destaque: {
+    color: '#7054B5',
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  descricao: {
+    color: '#514C61',
+    fontSize: 14,
+    lineHeight: 21,
     marginBottom: 5,
   },
-
-  picker: {
-    width: '100%',
-    height: 52,
-    color: '#172B4D',
+  instrucao: {
+    color: '#7054B5',
+    fontWeight: 'bold',
+    marginTop: 8,
   },
-
-  slider: {
-    width: '100%',
-    height: 45,
+  blocoInteracao: {
+    backgroundColor: '#E6DFF8',
+    borderRadius: 14,
+    padding: 16,
+    marginTop: 12,
+  },
+  resultado: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 14,
+  },
+  formulario: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 16,
+  },
+  campo: {
+    marginBottom: 16,
+  },
+  rotulo: {
+    color: '#353047',
+    fontSize: 14,
+    fontWeight: '600',
     marginBottom: 8,
   },
-
+  input: {
+    backgroundColor: '#FAF9FD',
+    borderWidth: 1,
+    borderColor: '#D8D3E5',
+    borderRadius: 9,
+    padding: 12,
+    fontSize: 15,
+    color: '#282044',
+  },
+  picker: {
+    borderWidth: 1,
+    borderColor: '#D8D3E5',
+    borderRadius: 9,
+    overflow: 'hidden',
+    marginBottom: 18,
+  },
   linhaSwitch: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    paddingVertical: 8,
-    gap: 10,
+    marginVertical: 10,
   },
-
-  rotuloSwitch: {
-    color: '#24344D',
-    fontSize: 15,
-    fontWeight: 'bold',
-    flex: 1,
-  },
-
-  botaoSalvar: {
-    backgroundColor: '#C8103E',
-    borderRadius: 12,
-    padding: 17,
+  botao: {
+    backgroundColor: '#7054B5',
+    padding: 14,
+    borderRadius: 10,
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: 10,
+    marginBottom: 5,
   },
-
-  botaoLimpar: {
-    backgroundColor: '#475569',
-    borderRadius: 12,
-    padding: 17,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-
   textoBotao: {
     color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: 'bold',
-  },
-
-  mensagem: {
-    color: '#8F1238',
     fontWeight: 'bold',
     fontSize: 15,
-    marginTop: 15,
-    textAlign: 'center',
   },
-
-  cardPerfil: {
+  botaoSecundario: {
     backgroundColor: '#FFFFFF',
-    padding: 22,
-    marginTop: 25,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#C8103E',
+    borderWidth: 1,
+    borderColor: '#7054B5',
   },
-
-  tituloPerfil: {
-    color: '#8F1238',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 18,
+  textoBotaoSecundario: {
+    color: '#7054B5',
   },
-
-  textoPerfil: {
-    color: '#344054',
-    fontSize: 16,
-    lineHeight: 25,
-    marginBottom: 8,
+  botaoPerigo: {
+    backgroundColor: '#B42332',
   },
-
+  resumo: {
+    backgroundColor: '#EAE6F3',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 20,
+  },
+  formularioSalvo: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D8D3E5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 12,
+  },
+  dataFormulario: {
+    color: '#777386',
+    fontSize: 12,
+    marginTop: 5,
+  },
   rodape: {
-    color: '#64748B',
+    color: '#817B91',
+    fontSize: 12,
     textAlign: 'center',
-    marginTop: 30,
-    marginBottom: 15,
-    fontSize: 14,
+    marginTop: 25,
   },
 });
